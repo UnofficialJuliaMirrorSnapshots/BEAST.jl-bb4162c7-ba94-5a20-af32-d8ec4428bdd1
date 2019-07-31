@@ -4,25 +4,29 @@ using BEAST
 G = meshsphere(1.0, 0.25)
 
 c = 1.0
-S = BEAST.HH3DSingleLayerTDBIO(c)
+# S = BEAST.HH3DSingleLayerTDBIO(c)
+S = BEAST.HH3DHyperSingularTDBIO(speed_of_light=c, numdiffs=1)
 
 width, delay, scaling = 8.0, 12.0, 1.0
 gaussian = creategaussian(width, delay, scaling)
 e = BEAST.planewave(point(0,0,1), c, gaussian)
 
-X = lagrangecxd0(G)
+# X = lagrangecxd0(G)
+X = lagrangec0d1(G)
 
 Δt, Nt = 0.08, 300
-#T = timebasisshiftedlagrange(Δt, Nt, 0)
-#T = timebasiscxd0(Δt, Nt)
 T = timebasisc0d1(Δt, Nt)
-U = timebasisdelta(Δt, Nt)
+U = timebasiscxd0(Δt, Nt)
 
 V = X ⊗ T # trial space
 W = X ⊗ U # test space
 
-b = assemble(e, W)
+nbd = center(chart(G, first(cells(G))))
+refs = refspace(X)
+vals = refs(nbd)
+
 Z = assemble(S, W, V)
+b = assemble(e, W)
 
 iZ1 = inv(Z[:,:,1])
 u = marchonintime(iZ1,Z,-b,Nt)
@@ -36,10 +40,8 @@ fgaussian = fouriertransform(gaussian)
 U1 /= fgaussian(ω1)
 Fcr, geo = facecurrents(U1, X)
 
-#A = [real(norm(f)) for f in Fcr]
-d = joinpath(dirname(pathof(CompScienceMeshes)),"..","examples","plotlyjs_patches.jl")
-include(d)
-# include(Pkg.dir("CompScienceMeshes","examples","plotlyjs_patches.jl"))
+include(joinpath(dirname(pathof(CompScienceMeshes)),"..","examples","plotlyjs_patches.jl"))
+
 using LinearAlgebra
 p = patch(geo, real.(norm.(Fcr)))
 #PlotlyJS.plot([p])

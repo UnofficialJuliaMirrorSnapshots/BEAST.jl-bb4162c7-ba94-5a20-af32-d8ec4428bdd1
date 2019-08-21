@@ -14,6 +14,7 @@ import BEAST
 
 include("test_fourier.jl")
 include("test_specials.jl")
+include("test_sparsend.jl")
 
 include("test_basis.jl")
 include("test_directproduct.jl")
@@ -41,6 +42,7 @@ include("test_nitsche.jl")
 include("test_nitschehh3d.jl")
 
 include("test_hh3dtd_exc.jl")
+include("test_tdassembly.jl")
 include("test_tdhhdbl.jl")
 include("test_tdmwdbl.jl")
 

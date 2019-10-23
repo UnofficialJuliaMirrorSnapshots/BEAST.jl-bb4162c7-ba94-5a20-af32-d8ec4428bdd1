@@ -12,8 +12,10 @@ T′ = Maxwell3D.singlelayer(wavenumber=κ′)
 K  = Maxwell3D.doublelayer(wavenumber=κ)
 K′ = Maxwell3D.doublelayer(wavenumber=κ′)
 
-d = normalize(x̂+ŷ+ẑ)
-p = normalize(d × ẑ)
+# d = normalize(x̂+ŷ+ẑ)
+d = ẑ
+# p = normalize(d × ẑ)
+p = x̂
 E = Maxwell3D.planewave(direction=d, polarization=p, wavenumber=κ)
 H = -1/(im*κ*η)*curl(E)
 
@@ -37,6 +39,7 @@ um = u[nX+1:end]
 Θ, Φ = range(0.0,stop=2π,length=100), 0.0
 ffpoints = [point(cos(ϕ)*sin(θ), sin(ϕ)*sin(θ), cos(θ)) for θ in Θ for ϕ in Φ]
 
+# Don't forgt the far field comprises two contributions
 ffm = potential(MWFarField3D(κ*im), ffpoints, um, X)
 ffj = potential(MWFarField3D(κ*im), ffpoints, uj, X)
 ff = η*im*κ*ffj + im*κ*cross.(ffpoints, ffm)
@@ -44,3 +47,8 @@ ff = η*im*κ*ffj + im*κ*cross.(ffpoints, ffm)
 using Plots
 plot(xlabel="theta")
 plot!(Θ,norm.(ff),label="far field")
+
+import PlotlyJS
+using LinearAlgebra
+fcrj, _ = facecurrents(uj,X)
+PlotlyJS.plot(patch(Γ, norm.(fcrj)))

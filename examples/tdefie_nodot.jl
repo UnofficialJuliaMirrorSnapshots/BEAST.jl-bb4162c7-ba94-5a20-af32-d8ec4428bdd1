@@ -10,10 +10,10 @@ X = raviartthomas(Γ)
 
 Δt, Nt = 0.6, 200
 # Δt, Nt = 0.05, 400
-T = timebasisshiftedlagrange(Δt, Nt, 3)
+T = timebasisshiftedlagrange(Δt, Nt, 1)
 U = timebasisdelta(Δt, Nt)
 
-V = X ⊗ T
+V = X ⊗ integrate(T)
 W = X ⊗ U
 
 # duration, delay, amplitude = 8.0, 12.0, 1.0
@@ -23,18 +23,18 @@ amplitude = 1.0
 gaussian = creategaussian(duration, delay, amplitude)
 
 direction, polarisation = ẑ, x̂
-E = BEAST.planewave(polarisation, direction, derive(gaussian), 1.0)
+E = BEAST.planewave(polarisation, direction, gaussian, 1.0)
 
 
 
 @hilbertspace j; @hilbertspace j′
-T = MWSingleLayerTDIO(1.0,-1/1.0,-1.0,2,0)
+SL = MWSingleLayerTDIO(1.0,-1/1.0,-1.0,2,0)
 # tdefie = @discretise T[j′,j] == -1E[j′]   j∈V  j′∈W
 # xefie = solve(tdefie)
 
-Z_efie = assemble(T, W, V, Val{:bandedstorage})
+Z_efie = assemble(SL, W, V, Val{:bandedstorage})
 b_efie = assemble(E, W)
-xefie = marchonintime(inv(Z_efie[:,:,1]), Z_efie, b_efie, Nt)
+xefie_nodot = marchonintime(inv(Z_efie[:,:,1]), Z_efie, b_efie, Nt)
 
 
 Xefie, Δω, ω0 = fouriertransform(xefie, Δt, 0.0, 2)

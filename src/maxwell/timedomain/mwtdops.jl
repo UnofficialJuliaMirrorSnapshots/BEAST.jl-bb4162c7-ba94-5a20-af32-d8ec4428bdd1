@@ -13,21 +13,52 @@ mutable struct MWSingleLayerTDIO{T} <: RetardedPotential{T}
     hs_diffs::Int
 end
 
+function Base.:*(a::Number, op::MWSingleLayerTDIO)
+	@info "scalar product a * op (SL)"
+	MWSingleLayerTDIO(
+		op.speed_of_light,
+		a * op.ws_weight,
+		a * op.hs_weight,
+		op.ws_diffs,
+		op.hs_diffs)
+end
+
 mutable struct MWDoubleLayerTDIO{T} <: RetardedPotential{T}
     speed_of_light::T
     weight::T
     num_diffs::Int
 end
 
+function Base.:*(a::Number, op::MWDoubleLayerTDIO)
+	@info "scalar product a * op (DL)"
+	MWDoubleLayerTDIO(
+		op.speed_of_light,
+		a * op.weight,
+		op.num_diffs)
+end
+
 MWSingleLayerTDIO(;speedoflight) = MWSingleLayerTDIO(speedoflight,-1/speedoflight,-speedoflight,2,0)
 MWDoubleLayerTDIO(;speedoflight) = MWDoubleLayerTDIO(speedoflight, one(speedoflight), 0)
 
-module TimeDomain
-module Maxwell3D
+
+module TDMaxwell3D
 import ...BEAST
-SingleLayer(;speedoflight) = BEAST.MWSingleLayerTDIO(speedoflight,-1/speedoflight,-speedoflight,2,0)
+
+function singlelayer(;speedoflight, numdiffs=0)
+	@assert numdiffs >= 0
+	numdiffs == 0 && return BEAST.integrate(BEAST.MWSingleLayerTDIO(speedoflight,-1/speedoflight,-speedoflight,2,0))
+	return BEAST.MWSingleLayerTDIO(speedoflight,-1/speedoflight,-speedoflight,2+numdiffs-1,numdiffs-1)
 end
+
+function doublelayer(;speedoflight, numdiffs=0)
+	@assert numdiffs >= -1
+	numdiffs == -1 && BEAST.integrate(BEAST.MWDoubleLayerTDIO(speedoflight,1.0,0))
+	return BEAST.MWDoubleLayerTDIO(speedoflight,1.0,numdiffs)
 end
+
+end # module TDMaxwell3D
+
+export TDMaxwell3D
 
 function quaddata(op::MWSingleLayerTDIO, testrefs, trialrefs, timerefs,
         testels, trialels, timeels)

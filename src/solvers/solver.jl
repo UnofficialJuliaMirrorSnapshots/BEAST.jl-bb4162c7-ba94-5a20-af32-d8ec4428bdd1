@@ -87,6 +87,44 @@ function assemble(lform::LinForm, test_space_dict)
     return B
 end
 
+function td_assemble(lform::LinForm, test_space_dict)
+
+    terms = lform.terms
+
+    T = Float32
+    for term in lform.terms
+        T = scalartype(T,term.coeff)
+        T = scalartype(T,term.functional)
+    end
+    for kv in test_space_dict;  T = scalartype(T,kv[2]) end
+    @show T
+
+    I = [numfunctions(spatialbasis(test_space_dict[i])) for i in 1:length(lform.test_space)]
+
+    BT = SparseND.SpaceTimeData{T}
+    B = BlockArray(undef_blocks, BT, I)
+
+    for t in terms
+
+        α = t.coeff
+        a = t.functional
+        m = t.test_id
+        X = test_space_dict[m]
+        o = t.test_ops
+
+        # act with the various ops on X
+        for op in reverse(o)
+            Y = X;
+            X = op[end](op[1:end-1]..., Y)
+        end
+
+        b = assemble(a, X)
+        B[Block(m)] = SparseND.SpaceTimeData{T}(α*b)
+    end
+
+    return B
+end
+
 function assemble(bilform::BilForm, test_space_dict, trial_space_dict)
 
   lhterms = bilform.terms
@@ -134,5 +172,58 @@ function assemble(bilform::BilForm, test_space_dict, trial_space_dict)
       Z[r,c] += α * z
   end
 
+  return Z
+end
+
+
+
+function td_assemble(bilform::BilForm, test_space_dict, trial_space_dict)
+
+  lhterms = bilform.terms
+
+  T = Float32
+  for term in bilform.terms
+      T = scalartype(T,term.coeff)
+      T = scalartype(T,term.kernel)
+  end
+  for kv in test_space_dict;  T = scalartype(T,kv[2]) end
+  for kv in trial_space_dict; T = scalartype(T,kv[2]) end
+
+  I = [numfunctions(spatialbasis(test_space_dict[i])) for i in 1:length(bilform.test_space)]
+  J = [numfunctions(spatialbasis(trial_space_dict[i])) for i in 1:length(bilform.trial_space)]
+
+  @show I
+  @show J
+
+  BT = SparseND.MatrixOfConvolutions{T}
+  Z = BlockArray(undef_blocks, BT, I, J)
+
+  # For each block, compute the interaction matrix
+  for t in lhterms
+
+      # α = t.coeff
+      @show t.coeff
+      @show t.kernel
+      a = t.coeff * t.kernel
+
+      m = t.test_id
+      x = test_space_dict[m]
+      for op in reverse(t.test_ops)
+          x = op[end](op[1:end-1]..., x)
+      end
+
+      n = t.trial_id
+      y = trial_space_dict[n]
+      for op in reverse(t.trial_ops)
+          y = op[end](op[1:end-1]..., y)
+      end
+
+      z = assemble(a, x, y)
+      @warn "variation formulations where combinations of test and trial space recur multiple times are not supported!"
+      Z[Block(m,n)] = SparseND.MatrixOfConvolutions(z)
+      # Z[r,c] += α * z
+  end
+  #
+  # return Z
   return Z
 end
